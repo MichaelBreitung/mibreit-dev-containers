@@ -44,7 +44,7 @@ The web image has no Go, Helm or Kubernetes tooling.
 The dev container image ([.devcontainer/Dockerfile](.devcontainer/Dockerfile)) is based on the published base image and adds:
 
 - the `developer` user with passwordless `sudo`, matching your host `UID`/`GID`
-- `bash-completion`, a bash prompt that shows the git branch, and Taskfile completion
+- a bash prompt that shows the git branch (Taskfile completion comes from the base image)
 - the entrypoint [.devcontainer/docker-entrypoint.sh](.devcontainer/docker-entrypoint.sh) (see [Using the Base Images in Your Own Projects](#using-the-base-images-in-your-own-projects))
 
 [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) configures the VS Code extensions and settings used inside the container.

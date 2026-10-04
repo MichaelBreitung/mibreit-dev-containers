@@ -14,7 +14,8 @@
               "redhat.vscode-yaml",
               "eamodio.gitlens",
               "streetsidesoftware.code-spell-checker",
-              "DavidAnson.vscode-markdownlint"
+              "DavidAnson.vscode-markdownlint",
+              "openai.chatgpt"
             ],
             "settings": {
                 "editor.tabSize": 2,

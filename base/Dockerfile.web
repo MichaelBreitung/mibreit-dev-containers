@@ -81,7 +81,9 @@ RUN sh -c "$(curl -fsSL https://taskfile.dev/install.sh)" -- -d -b /usr/local/bi
 
 # Install Google Chrome stable (needed by Lighthouse).
 # Google publishes Chrome for Linux amd64 only, so this image cannot be built for arm64.
-RUN [ "$(dpkg --print-architecture)" = "amd64" ] || { echo "Error: this image is amd64 only (Google Chrome)."; exit 1; } && \
+RUN if [ "$(dpkg --print-architecture)" != "amd64" ]; then \
+      echo "Error: this image is amd64 only (Google Chrome)." >&2; exit 1; \
+    fi && \
   install -m 0755 -d /etc/apt/keyrings && \
   curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg && \
   echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
@@ -120,4 +122,3 @@ RUN curl -fsSL https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/p
   apt-get update && apt-get install -y --no-install-recommends stripe && \
   apt-get clean -y && \
   rm -rf /var/lib/apt/lists/*
-
