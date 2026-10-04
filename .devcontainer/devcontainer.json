@@ -1,0 +1,36 @@
+{
+    "name": "mibreit_fullstack_dev_tooling",
+    "dockerComposeFile": "./docker-compose.yml",
+    "service": "mibreit-fullstack-dev",
+    "workspaceFolder": "/home/developer/develop",
+    "shutdownAction": "stopCompose",
+    "containerUser": "developer",
+    "updateRemoteUserUID": true,
+    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+              "ms-azuretools.vscode-docker",
+              "redhat.vscode-yaml",
+              "eamodio.gitlens",
+              "streetsidesoftware.code-spell-checker",
+              "DavidAnson.vscode-markdownlint"
+            ],
+            "settings": {
+                "editor.tabSize": 2,
+                "editor.trimAutoWhitespace": true,
+                "[dockerfile]": {
+                  "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+                },
+                "[yaml]": {
+                  "editor.defaultFormatter": "redhat.vscode-yaml"
+                },
+                "yaml.schemas": {
+                  "https://taskfile.dev/schema.json": [
+                    "**/*Taskfile.yaml"
+                  ]
+                }
+            }
+        }
+    }
+}

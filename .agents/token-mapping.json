@@ -1,0 +1,7 @@
+{
+  "DOC_ROOT": "README.md",
+  "TRUNK_BRANCH": "master",
+  "TICKET_SYSTEM": "local",
+  "TICKET_PROFILE": "ticket-systems/local.md",
+  "SCRATCH_DIR": "temp/"
+}

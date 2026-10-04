@@ -1,0 +1,14 @@
+version: "3"
+
+vars:
+  ENV_FILE:
+    ref: joinPath .ROOT_DIR ".env"
+
+tasks:
+ 
+  envfile:
+    cmd: touch {{.ENV_FILE}}
+    status:
+      - test -f {{.ENV_FILE}}
+    silent: true
+

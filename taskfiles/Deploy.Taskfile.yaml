@@ -1,0 +1,80 @@
+version: "3"
+
+vars:
+  FULLSTACK_IMAGE: mibreit/mibreit-fullstack
+  WEB_IMAGE: mibreit/mibreit-homepage-builder
+
+tasks:
+  build:fullstack:
+    desc: "Build the fullstack image: task deploy:build:fullstack VERSION=X.Y.Z"
+    requires:
+      vars: [VERSION]
+    cmds:
+      - task: _build
+        vars: { IMAGE: "{{.FULLSTACK_IMAGE}}", IMAGE_VERSION: "{{.VERSION}}", DOCKERFILE: Dockerfile.fullstack }
+
+  build:web:
+    desc: "Build the homepage-builder image: task deploy:build:web VERSION=X.Y.Z"
+    requires:
+      vars: [VERSION]
+    cmds:
+      - task: _build
+        vars: { IMAGE: "{{.WEB_IMAGE}}", IMAGE_VERSION: "{{.VERSION}}", DOCKERFILE: Dockerfile.web }
+
+  build:all:
+    desc: "Build all images: task deploy:build:all FULLSTACK_VERSION=X.Y.Z WEB_VERSION=X.Y.Z"
+    requires:
+      vars: [FULLSTACK_VERSION, WEB_VERSION]
+    cmds:
+      - task: _build
+        vars: { IMAGE: "{{.FULLSTACK_IMAGE}}", IMAGE_VERSION: "{{.FULLSTACK_VERSION}}", DOCKERFILE: Dockerfile.fullstack }
+      - task: _build
+        vars: { IMAGE: "{{.WEB_IMAGE}}", IMAGE_VERSION: "{{.WEB_VERSION}}", DOCKERFILE: Dockerfile.web }
+
+  upload:fullstack:
+    desc: "Push the fullstack image and move 'latest': task deploy:upload:fullstack VERSION=X.Y.Z"
+    requires:
+      vars: [VERSION]
+    cmds:
+      - task: _upload
+        vars: { IMAGE: "{{.FULLSTACK_IMAGE}}", IMAGE_VERSION: "{{.VERSION}}" }
+
+  upload:web:
+    desc: "Push the homepage-builder image and move 'latest': task deploy:upload:web VERSION=X.Y.Z"
+    requires:
+      vars: [VERSION]
+    cmds:
+      - task: _upload
+        vars: { IMAGE: "{{.WEB_IMAGE}}", IMAGE_VERSION: "{{.VERSION}}" }
+
+  upload:all:
+    desc: "Push all images: task deploy:upload:all FULLSTACK_VERSION=X.Y.Z WEB_VERSION=X.Y.Z"
+    requires:
+      vars: [FULLSTACK_VERSION, WEB_VERSION]
+    cmds:
+      - task: _upload
+        vars: { IMAGE: "{{.FULLSTACK_IMAGE}}", IMAGE_VERSION: "{{.FULLSTACK_VERSION}}" }
+      - task: _upload
+        vars: { IMAGE: "{{.WEB_IMAGE}}", IMAGE_VERSION: "{{.WEB_VERSION}}" }
+
+  _build:
+    internal: true
+    dir: "{{.ROOT_DIR}}/base"
+    requires:
+      vars: [IMAGE, IMAGE_VERSION, DOCKERFILE]
+    cmds:
+      - docker image build --build-arg VERSION={{.IMAGE_VERSION}} -t {{.IMAGE}}:{{.IMAGE_VERSION}} -f {{.DOCKERFILE}} .
+
+  _upload:
+    internal: true
+    requires:
+      vars: [IMAGE, IMAGE_VERSION]
+    cmds:
+      - |
+        if docker manifest inspect {{.IMAGE}}:{{.IMAGE_VERSION}} > /dev/null 2>&1; then
+          echo "Error: {{.IMAGE}}:{{.IMAGE_VERSION}} already exists in the registry. Use a new, higher version."
+          exit 1
+        fi
+      - docker push {{.IMAGE}}:{{.IMAGE_VERSION}}
+      - docker tag {{.IMAGE}}:{{.IMAGE_VERSION}} {{.IMAGE}}:latest
+      - docker push {{.IMAGE}}:latest

@@ -1,0 +1,22 @@
+services:
+  mibreit-fullstack-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - UID=${UID:-1000} # id -u
+        - GID=${GID:-1000} # id -g
+        - USER=developer
+    volumes:
+      # main project folder mount
+      - ..:/home/developer/develop
+      # docker socket mount
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # variables such as OPENROUTER_API_KEY and OPENROUTER_BASE_URL (optional file)
+    env_file:
+      - path: ../.env
+        required: false
+
+  

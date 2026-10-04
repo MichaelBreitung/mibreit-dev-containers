@@ -1,0 +1,5 @@
+version: "3"
+
+includes:
+  init: ./taskfiles/Init.Taskfile.yaml
+  deploy: ./taskfiles/Deploy.Taskfile.yaml

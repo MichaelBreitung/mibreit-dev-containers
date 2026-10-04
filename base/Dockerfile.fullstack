@@ -1,0 +1,134 @@
+FROM ubuntu:24.04
+
+# Image version, passed in by the Deploy taskfile
+ARG VERSION=dev
+
+# LABEL for the custom image
+LABEL maintainer="breitung.michael@gmail.com"
+LABEL version="${VERSION}"
+LABEL description="This is a custom Docker Image for Fullstack Development."
+
+# Disable Prompt During Packages Installation
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Setting bash as default shell
+SHELL ["/bin/bash", "-c"]
+
+# Setting environment variables
+ENV NVM_DIR=/usr/local/nvm
+ENV NVM_VERSION=v0.40.8
+ENV NODE_VERSION=v24.21.0
+ENV CODEX_VERSION=0.160.0
+ENV GO_VERSION=1.27.1
+ENV DELVE_VERSION=v1.27.2
+ENV TASK_VERSION=v3.54.0
+ENV KUBECTL_VERSION=v1.37.1
+ENV HELM_VERSION=3.22.0
+
+# Ubuntu 24.04 marks the system Python as "externally managed" (PEP 668).
+# This is a single-purpose container, so installing into the system Python is fine.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
+# Update Ubuntu Software repository and install tools
+# Packages are intentionally not version-pinned: Ubuntu removes superseded package
+# versions from its mirrors, so exact pins break rebuilds. Reproducibility comes from
+# the published, versioned image tags.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+  sudo \
+  iputils-ping \
+  git \
+  git-lfs \
+  python3 \
+  python3-pip \
+  python3-venv \
+  python-is-python3 \
+  ca-certificates \
+  curl \
+  openssh-client \
+  wget \
+  postgresql-client \
+  bc \
+  jq \
+  unzip \
+  zip \
+  build-essential \
+  bash-completion \
+  less \
+  nano \
+  gnupg && \
+  apt-get clean -y && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install basic python packages
+RUN pip3 install --no-cache-dir \
+  pytest==9.1.1 \
+  pytest-asyncio==1.4.0 \
+  black==26.5.1 \
+  isort==9.0.2 \
+  mypy==2.4.0 \
+  requests==2.34.2 \
+  sseclient==0.0.27
+
+# Install Node using NVM, plus the Codex CLI
+# NVM_DIR is made writable and nvm.sh is sourced in interactive shells, so that other
+# Node versions can be installed and selected with nvm.
+RUN mkdir -p $NVM_DIR && curl -fsSo- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash && \
+  source $NVM_DIR/nvm.sh && \
+  nvm install "$NODE_VERSION" && \
+  npm install -g @openai/codex@${CODEX_VERSION} && \
+  for bin in node npm npx codex; do \
+    ln -s $NVM_DIR/versions/node/$NODE_VERSION/bin/$bin /usr/local/bin/$bin; \
+  done && \
+  chmod -R a+rwX $NVM_DIR && \
+  echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
+
+# Install Go
+RUN ARCH="$(dpkg --print-architecture)" && \
+  curl -fsSL -o "go.tar.gz" "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" && \
+  tar -C /usr/local -xzf "go.tar.gz" && \
+  rm "go.tar.gz"
+
+ENV PATH="$PATH:/usr/local/go/bin"
+
+# Install Delve into /usr/local/bin, so that it is on the PATH for every user
+RUN GOBIN=/usr/local/bin GOPATH=/tmp/gopath GOCACHE=/tmp/gocache \
+  go install github.com/go-delve/delve/cmd/dlv@${DELVE_VERSION} && \
+  rm -rf /tmp/gopath /tmp/gocache
+
+# Install Taskfile, plus its bash completion (loaded on demand by bash-completion)
+RUN sh -c "$(curl -fsSL https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin ${TASK_VERSION} && \
+  task --completion bash > /usr/share/bash-completion/completions/task
+
+# Install Docker CLI with the buildx and compose plugins.
+# The engine itself is not needed: the host's Docker socket is mounted into the container.
+RUN install -m 0755 -d /etc/apt/keyrings && \
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+  chmod a+r /etc/apt/keyrings/docker.asc
+
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  docker-ce-cli \
+  docker-buildx-plugin \
+  docker-compose-plugin && \
+  apt-get clean -y && \
+  rm -rf /var/lib/apt/lists/*
+
+# Install Kubectl
+RUN ARCH="$(dpkg --print-architecture)" && \
+  curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" && \
+  curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl.sha256" && \
+  echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check && \
+  install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+  rm kubectl kubectl.sha256
+
+# Install Helm
+RUN ARCH="$(dpkg --print-architecture)" && \
+  curl -fsSLO "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${ARCH}.tar.gz" && \
+  curl -fsSLO "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${ARCH}.tar.gz.sha256sum" && \
+  sha256sum --check "helm-v${HELM_VERSION}-linux-${ARCH}.tar.gz.sha256sum" && \
+  tar -zxf "helm-v${HELM_VERSION}-linux-${ARCH}.tar.gz" && \
+  mv "linux-${ARCH}/helm" /usr/local/bin/helm && \
+  rm -rf "linux-${ARCH}" helm-v${HELM_VERSION}-linux-${ARCH}.tar.gz*
+
