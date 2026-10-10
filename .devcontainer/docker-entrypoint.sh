@@ -3,19 +3,19 @@ set -e
 
 DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
 
-if [ "${DOCKER_GID}" != "0" ]; then
-    # The socket's GID may already belong to another group (e.g. the user's own group)
-    SOCK_GROUP=$(getent group "${DOCKER_GID}" | cut -d: -f1 || true)
-    if [ -n "${SOCK_GROUP}" ]; then
-        sudo usermod -aG "${SOCK_GROUP}" "$USER"
+# The socket's GID may already belong to another group (e.g. the user's own group, or
+# "root" when GID is 0, as with Docker Desktop). Adding the user to the root group is
+# acceptable here: the user already has passwordless sudo.
+SOCK_GROUP=$(getent group "${DOCKER_GID}" | cut -d: -f1 || true)
+if [ -n "${SOCK_GROUP}" ]; then
+    sudo usermod -aG "${SOCK_GROUP}" "$USER"
+else
+    if ! getent group docker >/dev/null; then
+        sudo groupadd -g "${DOCKER_GID}" docker
     else
-        if ! getent group docker >/dev/null; then
-            sudo groupadd -g "${DOCKER_GID}" docker
-        else
-            sudo groupmod -g "${DOCKER_GID}" docker
-        fi
-        sudo usermod -aG docker "$USER"
+        sudo groupmod -g "${DOCKER_GID}" docker
     fi
+    sudo usermod -aG docker "$USER"
 fi
 
 # Codex: generate the OpenRouter config from the environment (.env), if there is none yet.

@@ -89,7 +89,7 @@ To set up a new project:
 
 [.devcontainer/docker-entrypoint.sh](.devcontainer/docker-entrypoint.sh) does two things on every container start:
 
-- **Docker socket access:** it reads the group ID of the mounted `/var/run/docker.sock` and adds the container user to a group with that ID, creating the group if necessary. This lets the non-root container user run `docker` against the host engine, whatever group ID the host assigns to the socket.
+- **Docker socket access:** it reads the group ID of the mounted `/var/run/docker.sock` and adds the container user to a group with that ID, creating the group if necessary. This includes the `root` group (GID 0), which is what Docker Desktop typically assigns to the socket. This lets the non-root container user run `docker` against the host engine, whatever group ID the host assigns to the socket.
 - **Codex with OpenRouter:** if `OPENROUTER_API_KEY` and `OPENROUTER_BASE_URL` are set, and `~/.codex/config.toml` does not exist yet, it generates that file so that Codex uses OpenRouter. The API key is not written to the file; Codex reads it from the environment. An existing config is never overwritten, and deleting the file regenerates it. Without these variables nothing happens.
 
 The script has these requirements, which the template files already fulfil:
