@@ -35,6 +35,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 # the published, versioned image tags.
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
   sudo \
+  bubblewrap \
   iputils-ping \
   git \
   git-lfs \

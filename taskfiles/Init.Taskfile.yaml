@@ -5,9 +5,20 @@ vars:
     ref: joinPath .ROOT_DIR ".env"
 
 tasks:
+  dev: 
+    desc: Initialze the development environment
+    cmds:
+      - task envfile
  
   envfile:
-    cmd: touch {{.ENV_FILE}}
+    desc: Create an env file with OPENROUTER_BASE_URL and OPENROUTER_API_KEY variables
+    vars:
+      OPENROUTER_BASE_URL: ""
+      OPENROUTER_API_KEY: ""
+    cmds:
+      - touch {{.ENV_FILE}}
+      - echo "OPENROUTER_BASE_URL={{.OPENROUTER_BASE_URL}}" >> {{.ENV_FILE}}
+      - echo "OPENROUTER_API_KEY={{.OPENROUTER_API_KEY}}" >> {{.ENV_FILE}}
     status:
       - test -f {{.ENV_FILE}}
     silent: true
